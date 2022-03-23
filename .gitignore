@@ -1,3 +1,6 @@
 Adaboost-checkpoint.ipynb
 *.txt
 vanilla _skipgram_numpy_with_softmax-checkpoint.ipynb
+temp
+cbow_pytorch-checkpoint.ipynb
+cbow_trivial_and_slow-checkpoint.ipynb
