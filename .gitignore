@@ -5,3 +5,4 @@ temp
 cbow_pytorch-checkpoint.ipynb
 cbow_trivial_and_slow-checkpoint.ipynb
 word2vec/.ipynb_checkpoints
+.ipynb_checkpoints
