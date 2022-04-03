@@ -1,3 +1,5 @@
+# System RAM leakage issue 
+
 import torch
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
@@ -28,6 +30,7 @@ class AnyData(Dataset):
 
     
 class LaBSE_clf(nn.Module):
+    
 
     def __init__(self, external_preprocessor, external_encoder, dropout=0.15):
         super(LaBSE_clf, self).__init__()
@@ -77,7 +80,7 @@ def train(model, train_data, val_data, learning_rate, epochs, batch, w):
                 batch_loss = criterion(output, train_label)
                 total_loss_train += batch_loss.item()
                 output_ = torch.nn.functional.one_hot(output.argmax(dim=1), num_classes=6)
-                acc = (output_ == train_label).sum().cpu().item()
+                acc = (output_ == train_label).sum().detach().cpu().item()
                 total_acc_train += acc
                 optimizer.zero_grad()
                 batch_loss.backward()
@@ -90,9 +93,9 @@ def train(model, train_data, val_data, learning_rate, epochs, batch, w):
                     val_label = val_label.to(device)
                     output = model(val_input)
                     batch_loss = criterion(output, val_label)
-                    total_loss_val += batch_loss.cpu().item()
+                    total_loss_val += batch_loss.detach().cpu().item()
                     output_ = torch.nn.functional.one_hot(output.argmax(dim=1), num_classes=6)
-                    acc = (output_ == val_label).sum().cpu().item()
+                    acc = (output_ == val_label).sum().detach().cpu().item()
                     total_acc_val += acc
             print(
                 f'Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
