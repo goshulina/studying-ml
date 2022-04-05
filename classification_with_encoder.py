@@ -105,7 +105,7 @@ def train(model, train_data, val_data, learning_rate, epochs, batch, w):
                 mask = train_input['attention_mask'].to(device)
                 input_id = train_input['input_ids'].squeeze(1).to(device)
 
-                output = model(input_id)
+                output = model(input_id, mask)
                 batch_loss = criterion(output, train_label)
                 total_loss_train += batch_loss.item()
 
@@ -128,7 +128,7 @@ def train(model, train_data, val_data, learning_rate, epochs, batch, w):
                     mask = val_label['attention_mask'].to(device)
                     input_id = val_label['input_ids'].squeeze(1).to(device)
 
-                    output = model(input_id)
+                    output = model(input_id, mask)
                     batch_loss = criterion(output, val_label)
                     total_loss_val += batch_loss.detach().cpu().item()
 
