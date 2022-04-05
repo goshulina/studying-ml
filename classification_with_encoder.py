@@ -1,10 +1,13 @@
-# System RAM leakage issue 
+# System RAM leakage issue with labse
 
 import torch
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
 from torch import nn
+from transformers import BertTokenizer
+from torch import nn
 from transformers import BertModel
+from torch.optim import Adam
 from tqdm import tqdm
 
 
@@ -12,7 +15,12 @@ class AnyData(Dataset):
     
     def __init__(self, df):
         self.labels = [label for label in df['toxicity']]
-        self.texts = [text for text in df['comment_text']]
+        # self.texts = [text for text in df['comment_text']] # for labse
+
+        tokenizer = BertTokenizer.from_pretrained('bert-base-cased') # for labse
+        self.texts = [tokenizer(text, 
+                               padding='max_length', truncation=True, # , max_length = 512
+                                return_tensors="pt") for text in df['comment_text']]  # for labse
     
     def __getitem__(self, index):
         x = self.texts[index]
@@ -27,6 +35,25 @@ class AnyData(Dataset):
     
     def classes(self):
         return self.labels
+
+
+class BertClassifier(nn.Module):
+
+    def __init__(self, bert):
+
+        super(BertClassifier, self).__init__()
+
+        self.bert = bert
+        self.linear = nn.Linear(768, 6)
+        self.relu = nn.ReLU()
+
+    def forward(self, input_id, mask):
+
+        _, pooled_output = self.bert(input_ids=input_id, attention_mask=mask,return_dict=False)
+        linear_output = self.linear(pooled_output)
+        final_layer = self.relu(linear_output)
+
+        return final_layer
 
     
 class LaBSE_clf(nn.Module):
@@ -49,9 +76,6 @@ class LaBSE_clf(nn.Module):
         final_layer = self.relu(linear_output)
 
         return final_layer
-
-    
-    from torch.optim import Adam
 
 
 def train(model, train_data, val_data, learning_rate, epochs, batch, w):
@@ -76,11 +100,19 @@ def train(model, train_data, val_data, learning_rate, epochs, batch, w):
             model.train()
             for train_input, train_label in tqdm(train_dataloader):
                 train_label = train_label.to(device)
-                output = model(train_input)
+
+                # bert 
+                mask = train_input['attention_mask'].to(device)
+                input_id = train_input['input_ids'].squeeze(1).to(device)
+
+                output = model(input_id)
                 batch_loss = criterion(output, train_label)
                 total_loss_train += batch_loss.item()
-                output_ = torch.nn.functional.one_hot(output.argmax(dim=1), num_classes=6)
-                acc = (output_ == train_label).sum().detach().cpu().item()
+
+                # labse
+                # output_ = torch.nn.functional.one_hot(output.argmax(dim=1), num_classes=6)
+
+                acc = (output == train_label).sum().detach().cpu().item()
                 total_acc_train += acc
                 optimizer.zero_grad()
                 batch_loss.backward()
@@ -91,11 +123,19 @@ def train(model, train_data, val_data, learning_rate, epochs, batch, w):
             with torch.no_grad():
                 for val_input, val_label in val_dataloader:
                     val_label = val_label.to(device)
-                    output = model(val_input)
+
+                    # bert
+                    mask = val_label['attention_mask'].to(device)
+                    input_id = val_label['input_ids'].squeeze(1).to(device)
+
+                    output = model(input_id)
                     batch_loss = criterion(output, val_label)
                     total_loss_val += batch_loss.detach().cpu().item()
-                    output_ = torch.nn.functional.one_hot(output.argmax(dim=1), num_classes=6)
-                    acc = (output_ == val_label).sum().detach().cpu().item()
+
+                    # labse
+                    # output_ = torch.nn.functional.one_hot(output.argmax(dim=1), num_classes=6)
+
+                    acc = (output == val_label).sum().detach().cpu().item()
                     total_acc_val += acc
             print(
                 f'Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -109,7 +149,15 @@ df_train, df_val = np.split(df.sample(frac=1, random_state=42),
                                      [int(.8*len(df))])
 
 EPOCHS = 5
-model = LaBSE_clf(preprocessor, encoder)
+
+# 1
+# model = LaBSE_clf(preprocessor, encoder)
+
+# 2
+bebrt = BertModel.from_pretrained('bert-base-cased')
+model = BertClassifier(bebrt)
+
+
 LR = 1e-6
 bsize = 100
               
