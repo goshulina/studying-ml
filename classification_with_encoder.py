@@ -151,6 +151,14 @@ df_train, df_val = np.split(df.sample(frac=1, random_state=42),
 EPOCHS = 5
 
 # 1
+# import tensorflow_hub as hub
+# import tensorflow as tf
+# import tensorflow_text as text
+# 
+# 
+# encoder = hub.KerasLayer("https://tfhub.dev/google/LaBSE/2")
+# preprocessor = hub.KerasLayer(
+#     "https://tfhub.dev/google/universal-sentence-encoder-cmlm/multilingual-preprocess/2")
 # model = LaBSE_clf(preprocessor, encoder)
 
 # 2
