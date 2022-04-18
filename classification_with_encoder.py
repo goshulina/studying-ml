@@ -50,7 +50,10 @@ class BertClassifier(nn.Module):
     def forward(self, input_id, mask):
 
         _, pooled_output = self.bert(input_ids=input_id, attention_mask=mask,return_dict=False)
-        linear_output = self.linear(pooled_output)
+        linear_output = self.linear1(pooled_output)
+        final_layer = self.relu(linear_output)
+        dropout_output = self.dropout(final_layer)
+        linear_output = self.linear2(dropout_output)
         final_layer = self.relu(linear_output)
 
         return final_layer
@@ -89,7 +92,7 @@ def train(model, train_data, val_data, learning_rate, epochs, batch, w):
     device = torch.device("cuda" if use_cuda else "cpu")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = Adam(model.parameters(), lr= learning_rate)
+    optimizer = Adam(model.parameters(), lr=learning_rate)
 
     if use_cuda:
             model = model.cuda()
